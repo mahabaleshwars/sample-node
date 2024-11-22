@@ -1,2 +1,2 @@
 # sample-node
-hello
+test2
