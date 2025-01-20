@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup node
-        uses: lrq3000/setup-python@main
+        uses: actions/setup-node@dependabot/npm_and_yarn/semver-7.6.3
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
