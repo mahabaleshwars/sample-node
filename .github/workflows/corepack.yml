@@ -8,13 +8,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Enable Corepack
+    - name: Update corepack
+      run: sudo npm install -g corepack
+
+    - name: Enable corepack
       run: corepack enable
-    
-    - name: Setup Node.js Environment
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: '.nvmrc'
-        # https://github.com/actions/setup-node/issues/1027
-        cache: 'yarn'
+
+    - name: Install Yarn (specific version)
+      run: corepack prepare yarn@1.22.17 --activate
+
+    - name: Install dependencies
+      run: yarn install
+
+    - name: Run tests
+      run: yarn test
