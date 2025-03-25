@@ -1,0 +1,20 @@
+name: 1027 Error
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Enable Corepack
+      run: corepack enable
+    
+    - name: Setup Node.js Environment
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        # https://github.com/actions/setup-node/issues/1027
+        cache: 'yarn'
