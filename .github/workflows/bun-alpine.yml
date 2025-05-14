@@ -1,0 +1,30 @@
+name: Bun and Node.js Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-bun-alpine:
+    runs-on: ubuntu-latest
+    container:
+      image: oven/bun:1.2.13-alpine
+
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: where is node
+        run: which node
+
+      - name: Display Node.js version
+        run: node --version
+
+      - name: Display npm version
+        run: npm --version
