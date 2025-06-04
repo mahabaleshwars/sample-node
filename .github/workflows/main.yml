@@ -9,6 +9,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      # Now you can run pnpm commands
+      - name: Install dependencies
+        run: pnpm install
       - uses: actions/setup-node@v4
         with:
           node-version: 22.13.1
