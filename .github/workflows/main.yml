@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@4
         with:
           node-version: 22.13.1
-          cache: 'pnpm'
+          # cache: 'pnpm'
       - name: Install pnpm
         run: npm install -g pnpm
 
