@@ -12,10 +12,11 @@ jobs:
 
       - uses: actions/setup-node@v4.0.3
         with:
+          max_attempts: 3
           node-version: 22.13.1
-      #     cache: 'pnpm'
-      # - name: Install pnpm
-      #   run: npm install -g pnpm
+          cache: 'pnpm'
+      - name: Install pnpm
+        run: npm install -g pnpm
 
-      # - name: Install dependencies
-      #   run: pnpm install
+      - name: Install dependencies
+        run: pnpm install
