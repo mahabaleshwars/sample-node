@@ -1,0 +1,34 @@
+name: Cache v1 Sunset Reproduction
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-cache-sunset:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Setup Node.js to simulate the scenario
+      - name: Setup Node.js
+        uses: actions/setup-node@v3.9.0
+        with:
+          node-version: 20
+
+      # Intentionally use the deprecated v4.1.0 cache action
+      - name: Cache node_modules (deprecated v4.1.0)
+        uses: actions/cache@v4.1.0
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run a simple script
+        run: node -v
