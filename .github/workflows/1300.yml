@@ -20,8 +20,8 @@ jobs:
           node-version: 20
 
       # Intentionally use the deprecated v4.1.0 cache action
-      - name: Cache node_modules (deprecated v4.1.0)
-        uses: actions/cache@v4.1.0
+      - name: Cache node_modules (deprecated v4.2.0)
+        uses: actions/cache@v4.2.0
         with:
           path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
