@@ -15,7 +15,7 @@ jobs:
 
       # Setup Node.js to simulate the scenario
       - name: Setup Node.js
-        uses: actions/setup-node@v3.9.0
+        uses: actions/setup-node@v4.1.0
         with:
           node-version: 20
 
