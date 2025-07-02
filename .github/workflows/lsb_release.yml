@@ -1,0 +1,20 @@
+name: lsb_release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: setup
+        uses: actions/setup-node@v4
+      - name: Display OS Release Information
+        run: |
+          if command -v lsb_release > /dev/null; then
+            lsb_release -a
+          else
+            cat /etc/os-release
+          fi 
