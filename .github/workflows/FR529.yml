@@ -1,0 +1,29 @@
+name: 529 FR
+
+on: 
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16.x'
+        
+      - name: Display initial versions
+        run: |
+          echo "Node: $(node --version)"
+          echo "npm: $(npm --version)"
+          
+      - name: Install specific npm version
+        run: npm install -g npm@8.5.5
+        
+      - name: Verify final versions
+        run: |
+          echo "Final Node: $(node --version)"
+          echo "Final npm: $(npm --version)"
+          
+          # Quick validation
+          [[ $(npm --version) == "8.5.5" ]] && echo "✅ npm version correct" || echo "❌ npm version incorrect"
