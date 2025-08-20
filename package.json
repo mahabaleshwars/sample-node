@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "sample-node application",
   "main": "index.js",
-  "packageManager": "npm@10.8.2",
+  "packageManager": "yarn@4.4.1",
   "scripts": {
     "test": "echo \"Error: no test specified\" "
   },
