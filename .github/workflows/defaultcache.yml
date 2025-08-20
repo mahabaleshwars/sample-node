@@ -1,0 +1,17 @@
+name: Default Cache Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: priya-kinthali/setup-node@sample-686
+        with:
+          node-version: '18' # or your preferred version
+         
