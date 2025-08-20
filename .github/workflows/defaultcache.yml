@@ -13,5 +13,5 @@ jobs:
       - name: Setup node
         uses: priya-kinthali/setup-node@sample-686
         with:
-          node-version: '18' # or your preferred version
+          node-version: 20
          
