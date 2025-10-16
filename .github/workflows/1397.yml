@@ -1,0 +1,117 @@
+name: Reproduce Cache Architecture Issue
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Job 1: Build for x64 architecture on ARM64 host
+  build-x64-on-arm:
+    name: Build x64 on ARM64 Runner
+    runs-on: macos-latest  # This is ARM64 (M1/M2) on GitHub Actions
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Display runner architecture
+        run: |
+          echo "Runner architecture: $(uname -m)"
+          echo "Node process.arch will be: $(node -e 'console.log(process.arch)')"
+
+      - name: Set up Node.js for x64
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.17.0'
+          cache: 'yarn'
+          architecture: 'x64'  # Explicitly requesting x64
+
+      - name: Show cache key information
+        run: |
+          echo "Expected: Cache should be for x64 architecture"
+          echo "Actual: Cache key is likely based on arm64 (host architecture)"
+
+      - name: Install dependencies with x64 architecture
+        run: |
+          echo "Installing dependencies for x64 architecture..."
+          npm_config_arch=x64 yarn install --frozen-lockfile --verbose
+        env:
+          npm_config_arch: x64
+          npm_config_target_arch: x64
+
+      - name: Verify installed architecture
+        run: |
+          echo "Checking native module architecture..."
+          # This will show the architecture of installed native modules
+          find node_modules -name "*.node" -exec file {} \; | head -5
+
+  # Job 2: Build for ARM64 architecture on ARM64 host
+  build-arm64-on-arm:
+    name: Build ARM64 on ARM64 Runner
+    runs-on: macos-latest  # This is ARM64 (M1/M2) on GitHub Actions
+    needs: build-x64-on-arm  # Run after the first job to ensure cache conflict
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Display runner architecture
+        run: |
+          echo "Runner architecture: $(uname -m)"
+          echo "Node process.arch will be: $(node -e 'console.log(process.arch)')"
+
+      - name: Set up Node.js for ARM64 (default)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.17.0'
+          cache: 'yarn'
+          # No architecture specified, should use host architecture (arm64)
+
+      - name: Show cache key information
+        run: |
+          echo "Expected: Cache should be for arm64 architecture"
+          echo "Actual: Cache key is the same as x64 job (both use host arch)"
+
+      - name: Install dependencies with ARM64 architecture
+        run: |
+          echo "Installing dependencies for ARM64 architecture..."
+          yarn install --frozen-lockfile --verbose
+
+      - name: Verify installed architecture
+        run: |
+          echo "Checking native module architecture..."
+          # This will show the architecture of installed native modules
+          find node_modules -name "*.node" -exec file {} \; | head -5
+
+  # Job 3: Demonstrate the cache key collision
+  demonstrate-cache-collision:
+    name: Demonstrate Cache Key Collision
+    runs-on: macos-latest
+    needs: [build-x64-on-arm, build-arm64-on-arm]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js with x64 (attempt to use wrong cache)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.17.0'
+          cache: 'yarn'
+          architecture: 'x64'
+
+      - name: Show the problem
+        run: |
+          echo "❌ PROBLEM DEMONSTRATION:"
+          echo "The x64 job will try to restore cache that was created by ARM64 job"
+          echo "because both use the same cache key (based on runner's host arch)"
+          echo ""
+          echo "This causes builds to fail when native modules are involved"
+          echo "as x64 binaries won't work when ARM64 binaries are expected and vice versa"
+
+      - name: Install and show architecture mismatch
+        run: |
+          npm_config_arch=x64 yarn install --frozen-lockfile --verbose || {
+            echo "❌ Installation failed due to architecture mismatch in cached modules"
+            exit 1
+          }
