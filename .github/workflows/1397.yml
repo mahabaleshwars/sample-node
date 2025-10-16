@@ -1,58 +1,225 @@
-name: Simple Cache Architecture Test
+name: Cache Architecture Issue - macOS
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  # First run - populate cache with x64 modules
-  cache-with-x64:
-    name: Cache with x64
-    runs-on: ubuntu-latest
+  # Job 1: Build for x86_64 on macOS (as specified in the issue)
+  build-x86_64-macos:
+    name: macOS - Build for x86_64
+    runs-on: macos-latest  # Currently ARM64 (M1/M2) on GitHub Actions
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node with x64
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          architecture: 'x64'
-          cache: 'yarn'
-      
-      - name: Install dependencies
-        run: |
-          corepack enable
-          yarn install
-      
-      - name: Test modules
-        run: node test.js
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  # Second run - try to use cache with x86 (32-bit)
-  try-cache-with-x86:
-    name: Try cache with x86
-    runs-on: ubuntu-latest
-    needs: cache-with-x64
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node with x86
+      - name: Show runner architecture
+        run: |
+          echo "=== Runner Information ==="
+          echo "Runner OS: $(uname -s)"
+          echo "Runner Architecture: $(uname -m)"
+          echo "Should be arm64 for M1/M2 runners"
+          echo ""
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          architecture: 'x86'  # Different architecture!
+          node-version: '20.17.0'
           cache: 'yarn'
-      
-      - name: Show the problem
+          architecture: 'x64'
+
+      - name: Display cache key expectation
         run: |
-          echo "This job specified architecture: x86"
-          echo "But it will restore the cache from x64 job!"
-          echo "Both jobs use the same cache key because it's based on host arch (x64)"
-      
+          echo "=== Cache Key Issue ==="
+          echo "❌ PROBLEM: This job specifies architecture: 'x64'"
+          echo "But the cache key will be based on the runner's architecture (arm64)"
+          echo "This causes cache key collision with the arm64 job below"
+          echo ""
+
+      - name: Install dependencies with Yarn
+        run: npm_config_arch=x64 yarn install --frozen-lockfile --verbose
+        env:
+          npm_config_arch: x64
+          npm_config_target_arch: x64
+
+      - name: Verify installation
+        run: |
+          echo "=== Checking installed native modules ==="
+          find node_modules -name "*.node" -type f | while read -r file; do
+            echo "Found: $file"
+            file "$file" | grep -E "(x86_64|arm64)" || true
+          done
+          echo ""
+          echo "Native modules should be built for x86_64"
+
+  # Job 2: Build for arm64 on macOS (as specified in the issue)
+  build-arm64-macos:
+    name: macOS - Build for arm64
+    runs-on: macos-latest  # Currently ARM64 (M1/M2) on GitHub Actions
+    needs: build-x86_64-macos  # Run after x86_64 to show cache collision
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show runner architecture
+        run: |
+          echo "=== Runner Information ==="
+          echo "Runner OS: $(uname -s)"
+          echo "Runner Architecture: $(uname -m)"
+          echo "Should be arm64 for M1/M2 runners"
+          echo ""
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.17.0'
+          cache: 'yarn'
+          # Note: No architecture specified, should default to host (arm64)
+
+      - name: Display cache key issue
+        run: |
+          echo "=== Cache Key Issue ==="
+          echo "❌ PROBLEM: This job uses default architecture (arm64)"
+          echo "But it will use THE SAME cache key as the x86_64 job!"
+          echo "Both use the runner's host architecture for cache key generation"
+          echo ""
+          echo "This means we might get x86_64 binaries when we need arm64!"
+          echo ""
+
+      - name: Install dependencies with Yarn
+        run: yarn install --frozen-lockfile --verbose
+
+      - name: Verify installation
+        run: |
+          echo "=== Checking installed native modules ==="
+          find node_modules -name "*.node" -type f | while read -r file; do
+            echo "Found: $file"
+            file "$file" | grep -E "(x86_64|arm64)" || true
+          done
+          echo ""
+          echo "Native modules should be built for arm64"
+
+  # Job 3: Demonstrate cache collision clearly
+  demonstrate-cache-collision:
+    name: Demonstrate Cache Collision
+    runs-on: macos-latest
+    needs: [build-x86_64-macos, build-arm64-macos]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Explain the issue
+        run: |
+          echo "========================================="
+          echo "       CACHE ARCHITECTURE BUG SUMMARY"
+          echo "========================================="
+          echo ""
+          echo "Issue: setup-node uses os.arch() for cache keys"
+          echo "Location: setup-node/src/cache-restore.ts line 25"
+          echo ""
+          echo "Expected Behavior:"
+          echo "  - x64 job should have cache key with 'x64'"
+          echo "  - arm64 job should have cache key with 'arm64'"
+          echo "  - Different architectures = Different cache keys"
+          echo ""
+          echo "Actual Behavior:"
+          echo "  - Both jobs use runner's host arch (arm64) in cache key"
+          echo "  - Same cache key for different architectures"
+          echo "  - Wrong binaries get cached and restored"
+          echo ""
+          echo "Impact:"
+          echo "  - Build failures when native modules are involved"
+          echo "  - Cross-compilation scenarios fail"
+          echo "  - Cache poisoning between architectures"
+          echo ""
+
+      - name: Try x64 with potentially poisoned cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.17.0'
+          cache: 'yarn'
+          architecture: 'x64'
+
+      - name: Install and test
+        run: |
+          echo "Attempting to install x64 dependencies..."
+          echo "If cache was poisoned with arm64 binaries, this may fail"
+          npm_config_arch=x64 yarn install --frozen-lockfile --verbose || {
+            echo ""
+            echo "❌ Installation failed - likely due to architecture mismatch in cache!"
+            exit 1
+          }
+
+  # Additional test for Ubuntu (cross-platform verification)
+  ubuntu-cross-arch-test:
+    name: Ubuntu - Cross Architecture Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - architecture: x64
+            npm_arch: x64
+          - architecture: x86
+            npm_arch: ia32
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js for ${{ matrix.architecture }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.17.0'
+          cache: 'yarn'
+          architecture: ${{ matrix.architecture }}
+
+      - name: Show cache key issue
+        run: |
+          echo "Building for architecture: ${{ matrix.architecture }}"
+          echo "NPM architecture: ${{ matrix.npm_arch }}"
+          echo ""
+          echo "Both x64 and x86 jobs will use the same cache key!"
+          echo "This is because the cache key uses the host arch (x64) not the target arch"
+
       - name: Install dependencies
         run: |
-          corepack enable
-          npm_config_arch=ia32 yarn install
-        continue-on-error: true
-      
-      - name: Test modules (will likely fail)
-        run: node test.js
-        continue-on-error: true
+          npm_config_arch=${{ matrix.npm_arch }} \
+          npm_config_target_arch=${{ matrix.npm_arch }} \
+          yarn install --frozen-lockfile --verbose
+
+  # Windows test
+  windows-cross-arch-test:
+    name: Windows - Cross Architecture Test
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - architecture: x64
+            npm_arch: x64
+          - architecture: x86
+            npm_arch: ia32
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js for ${{ matrix.architecture }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.17.0'
+          cache: 'yarn'
+          architecture: ${{ matrix.architecture }}
+
+      - name: Show cache key issue
+        shell: bash
+        run: |
+          echo "Building for architecture: ${{ matrix.architecture }}"
+          echo "Both x64 and x86 will incorrectly share the same cache!"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          $env:npm_config_arch = "${{ matrix.npm_arch }}"
+          $env:npm_config_target_arch = "${{ matrix.npm_arch }}"
+          yarn install --frozen-lockfile --verbose
