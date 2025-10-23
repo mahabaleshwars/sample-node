@@ -1,0 +1,15 @@
+name: 1409 issue
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  release-dry-run:
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: ./.github/actions/set-up-ci
