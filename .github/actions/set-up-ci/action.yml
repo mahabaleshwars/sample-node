@@ -4,6 +4,7 @@ inputs:
   node-version:
     description: Node version to set up
     required: false # Defaults to "node-version-file"
+    default: '20'
   npm-version:
     description: NPM version to use for the package
     default: 11.5.1
