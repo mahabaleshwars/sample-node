@@ -1,0 +1,24 @@
+name: CI with LTS Node.js
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js (latest LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          # Resolves to the latest LTS version (e.g., 20.x)
+
+      - name: Display Node.js version
+        run: node --version
+
+      - run: npm ci
+      - run: npm test
