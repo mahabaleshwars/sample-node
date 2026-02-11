@@ -1,0 +1,29 @@
+name: CI with Latest Node.js
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js (latest stable)
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          # Automatically resolves to the latest stable Node.js version
+          # e.g., 22.x at the time of this writing
+
+      - name: Display Node.js version
+        run: node --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
