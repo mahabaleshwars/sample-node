@@ -1,0 +1,11 @@
+name: Repro 852
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  repro:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/set-up-ci
