@@ -2,10 +2,6 @@ name: Cache Architecture Issue - macOS
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   # Job 1: Build for x86_64 on macOS (as specified in the issue)
