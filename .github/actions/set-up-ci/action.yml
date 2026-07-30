@@ -1,28 +1,9 @@
-name: "Setup"
-description: "Set up Node and install project dependencies"
-inputs:
-  node-version:
-    description: Node version to set up
-    required: false # Defaults to "node-version-file"
-    default: '20'
-  npm-version:
-    description: NPM version to use for the package
-    default: 11.5.1
+name: 'Fix nvmrc setup-node'
+description: Set up Node 
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - uses: actions/setup-node@v7
       with:
-        node-version: ${{ inputs.node-version }}
-        check-latest: true
-        cache: "npm"
-        cache-dependency-path: "package-lock.json"
-    - run: node --version
-      shell: "bash"
-    - name: install latest npm
-      run: npm install -g npm@${{ inputs.npm-version }}
-      shell: "bash"
-    - name: install dependencies
-      run: npm ci
-      shell: "bash"
+        node-version-file: ${{ github.action_path }}/.nvmrc
